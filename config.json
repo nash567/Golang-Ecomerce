@@ -1,0 +1,16 @@
+
+{
+    "server":{
+        "port":8080,
+        "host":"localhost"
+    },
+    "database":{
+        "host":"localhost",
+        "name":"gocomerse",
+        "user":"user",
+        "port":2132
+    },
+    "logger":{
+        "level":1 
+    }
+}

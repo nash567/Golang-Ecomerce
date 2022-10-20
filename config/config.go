@@ -13,7 +13,9 @@ import (
 var ErrInvalidFileExtension = errors.New("file extension not supported")
 
 type AppConfig struct {
-	Server struct {
+	APPName string
+	Env     string
+	Server  struct {
 		Port int
 		Host string
 	}
