@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -12,11 +11,10 @@ import (
 	"github.com/gocomerse/config"
 	"github.com/gocomerse/internal/logger"
 	logModel "github.com/gocomerse/internal/logger/model"
-	_ "github.com/lib/pq"
 )
 
 type Application struct {
-	db         *sql.DB
+	// db         *sql.DB
 	log        logModel.Logger
 	cfg        *config.AppConfig
 	httpServer *http.Server
@@ -41,7 +39,8 @@ func (a *Application) Init(ctx context.Context, configFiles string) {
 		"appName": a.cfg.APPName,
 		"env":     a.cfg.Env,
 	})
-	a.httpServer = &http.Server{Addr: fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.Port), Handler: registerHTTPEndpoints(a)}
+	//nolint:gosec
+	a.httpServer = &http.Server{Addr: fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.Port), Handler: registerHTTPEndpoints()}
 
 }
 
@@ -59,7 +58,7 @@ func (a *Application) Start(ctx context.Context) {
 	}()
 }
 
-func registerHTTPEndpoints(a *Application) *http.ServeMux {
+func registerHTTPEndpoints() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	return mux
