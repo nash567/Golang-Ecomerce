@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
+
 	"github.com/gocomerse/cmd/goComerse/app"
 )
 

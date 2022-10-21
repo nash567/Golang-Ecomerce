@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	loggerModel "github.com/gocomerse/internal/logger/model"
+
 	"github.com/jinzhu/configor"
 	"github.com/joho/godotenv"
 )
@@ -35,7 +36,6 @@ func LoadConfig(fileNames ...string) (*AppConfig, error) {
 		case "yml", "json", "yaml", "toml":
 			loadFiles = append(loadFiles, file)
 		case "env":
-			fmt.Println(file)
 			envFiles = append(envFiles, file)
 		default:
 			return nil, ErrInvalidFileExtension
@@ -43,10 +43,9 @@ func LoadConfig(fileNames ...string) (*AppConfig, error) {
 
 		if len(envFiles) > 0 {
 
-			fmt.Println(envFiles)
 			err := godotenv.Load(envFiles...)
 			if err != nil {
-				return nil, fmt.Errorf("error while loading env files(%s): %v", strings.Join(envFiles, ","), err)
+				return nil, fmt.Errorf("error while loading env files(%s): %w", strings.Join(envFiles, ","), err)
 			}
 		}
 
