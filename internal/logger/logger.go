@@ -119,12 +119,12 @@ func (log *ZapLogger) Fatalf(format string, args ...interface{}) {
 	log.entry.Fatal(fmt.Sprintf(format, args...))
 }
 
-//nolint: ireturn // implements model.Logger interface
+//nolint:ireturn,gofmt // implements model.Logger interface
 func (log *ZapLogger) WithField(key string, value interface{}) model.Logger {
 	return &ZapLogger{entry: log.entry.With(zap.Any(key, value))}
 }
 
-//nolint: ireturn // implements model.Logger interface
+//nolint:ireturn,gofmt // implements model.Logger interface
 func (log *ZapLogger) WithFields(fields model.Fields) model.Logger {
 	zFields := make([]zapcore.Field, 0)
 	for key, value := range fields {
@@ -133,7 +133,7 @@ func (log *ZapLogger) WithFields(fields model.Fields) model.Logger {
 	return &ZapLogger{entry: log.entry.With(zFields...)}
 }
 
-//nolint: ireturn // implements model.Logger interface
+//nolint:ireturn // implements model.Logger interface
 func (log *ZapLogger) WithError(err error) model.Logger {
 	return &ZapLogger{entry: log.entry.With(zap.Error(err))}
 }
