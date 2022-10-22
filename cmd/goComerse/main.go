@@ -13,12 +13,17 @@ import (
 )
 
 const (
-	defaultConfPath = "./config.yml,./.env"
+	defaultConfPath      = "./config.yml,./.env"
+	defaultMigrationPath = "./build/db/migrations/"
 )
 
 func main() {
 	var configFiles string
+	var migrationPath string
+
 	flag.StringVar(&configFiles, "config", defaultConfPath, "comma separated list of config files to load")
+	flag.StringVar(&migrationPath, "migrations", defaultMigrationPath, "path to SQL migration directory")
+
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -26,6 +31,8 @@ func main() {
 
 	application := new(app.Application)
 	application.Init(ctx, configFiles)
+	application.Migrate(migrationPath)
+
 	application.Start(ctx)
 
 	sigterm := make(chan os.Signal, 1)

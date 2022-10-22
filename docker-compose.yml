@@ -1,0 +1,19 @@
+version: '3.1'
+
+services:
+  postgres:
+    container_name: ${GOCOMERSE_DATABASE_CONTAINER_NAME:-gocomerse-postgres}
+    image: postgres:${GOCOMERSE_POSTGRES_VERSION:-12-alpine}
+    restart: ${GOCOMERSE_DATABASE_RESTART:-always}
+    environment:
+      POSTGRES_DB: ${GOCOMERSE_DATABASE_NAME:-gocomerse}
+      POSTGRES_USER: ${GOCOMERSE_DATABASE_USER:-user}
+      POSTGRES_PASSWORD: ${GOCOMERSE_DATABASE_PASSWORD:-password}
+    ports:
+        - "${GOCOMERSE_DATABASE_PORT:-5432}:5432"
+
+  
+networks:
+  gocomersenet:
+
+
