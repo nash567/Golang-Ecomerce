@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	db "github.com/gocomerse/internal/db"
 	loggerModel "github.com/gocomerse/internal/logger/model"
 
 	"github.com/jinzhu/configor"
@@ -21,7 +22,8 @@ type AppConfig struct {
 		Host string
 	}
 
-	Logger *loggerModel.Config
+	Logger   *loggerModel.Config
+	Database *db.Config
 }
 
 func LoadConfig(fileNames ...string) (*AppConfig, error) {

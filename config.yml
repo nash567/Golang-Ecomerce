@@ -1,0 +1,20 @@
+appname: gocomerse
+env: dev
+server: 
+  port: 8080
+  host: localhost
+database: 
+  host: localhost
+  name: gocomerse
+  user: user
+  port: 2312
+  maxconns: 10
+  idleconns: 10
+  healthverifiers:
+    - cadence: 10s
+      type: ping
+  migrations:
+    verbose: false
+    dialect: postgres
+logger: 
+  level: 1
