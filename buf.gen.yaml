@@ -1,0 +1,15 @@
+version: v1
+plugins:  
+  - name: go
+    out: internal/pb/gocomerse
+    opt:
+      - paths=source_relative
+  - name: go-grpc
+    out: internal/pb/gocomerse
+    opt:
+      - paths=source_relative
+  - name: grpc-gateway
+    out: internal/pb/gocomerse
+    opt:
+      - paths=source_relative
+  
