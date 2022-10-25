@@ -42,12 +42,23 @@ message UpdateUserResponse{
 }
 
 message DeleteUserResponse{
+    string status = 1;
+    string message=2; 
+}
+message GetUserRequest{
 
 }
+message GetUserResponse{
+    repeated User users=1;
+}
 service UserService{
+    rpc GetUser(GetUserRequest) returns (GetUserResponse){
+        option (google.api.http)={
+            get:"/v1/user"
+        };
+    };
 
-
-    rpc GetUser(UserId)returns (User){
+    rpc GetUserByID(UserId)returns (User){
         option (google.api.http)={
             get: "/v1/user/{id}"
         };

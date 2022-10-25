@@ -3,6 +3,7 @@ module github.com/gocomerse
 go 1.19
 
 require (
+	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.12.0
 	github.com/jinzhu/configor v1.2.1
 	github.com/joho/godotenv v1.4.0
@@ -24,5 +25,5 @@ require (
 	golang.org/x/net v0.0.0-20220909164309-bea034e7d591 // indirect
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	golang.org/x/text v0.3.8 // indirect
-	gopkg.in/yaml.v2 v2.2.2 // indirect
+	gopkg.in/yaml.v2 v2.2.3 // indirect
 )

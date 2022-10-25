@@ -6,22 +6,32 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/pressly/goose"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
+	userRPC "github.com/gocomerse/api/rpc/gocomerse/user"
 	"github.com/gocomerse/config"
 	db "github.com/gocomerse/internal/db"
 	"github.com/gocomerse/internal/logger"
 	logModel "github.com/gocomerse/internal/logger/model"
+	userPB "github.com/gocomerse/internal/pb/gocomerse/user"
 )
 
+const timeout = 5 * time.Second
+
 type Application struct {
-	// db         *sql.DB
 	log        logModel.Logger
 	cfg        *config.AppConfig
 	httpServer *http.Server
+	grpcServer *grpc.Server
+	services   *services
 	db         *sql.DB
 }
 
@@ -34,7 +44,6 @@ func (a *Application) Init(ctx context.Context, configFiles string) {
 	}
 
 	// Initialize logger
-
 	a.log, err = logger.NewZapLogger(logModel.Config{Level: a.cfg.Logger.Level})
 	if err != nil {
 		panic(err)
@@ -58,16 +67,49 @@ func (a *Application) Init(ctx context.Context, configFiles string) {
 	}
 	a.log.WithField("host", a.cfg.Database.Host).WithField("port", a.cfg.Database.Port).Info("created database connection successfully")
 
-	//nolint:gosec
-	a.httpServer = &http.Server{Addr: fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.Port), Handler: registerHTTPEndpoints()}
+	a.services = buildServices(ctx, a.log, a.db)
 
+	a.grpcServer = rgisterGRPCEndpoints(a.services, a.log)
+
+	//nolint:gosec
+	a.httpServer = &http.Server{
+		Addr:              fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.Port),
+		Handler:           registerHTTPEndpoints(ctx, a.cfg, a.log),
+		ReadHeaderTimeout: timeout,
+	}
 }
 
 func (a *Application) Start(ctx context.Context) {
-	go func() {
-		a.log.WithField("addr", a.httpServer.Addr).Info("http server started")
 
-		if err := a.httpServer.ListenAndServe(); err != nil {
+	// grpc server
+	go func() {
+		listenOn := fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.GRPCPort)
+		listener, listenerErr := net.Listen("tcp", listenOn)
+		if listenerErr != nil {
+			a.log.WithError(listenerErr).Fatal(fmt.Sprintf("failed to listen on %s", listenOn))
+		}
+		a.log.WithField("addr", listenOn).Info("grpc server started")
+		if err := a.grpcServer.Serve(listener); err != nil {
+			a.log.WithError(err).Fatal("failed to serve gRPC server")
+		}
+	}()
+
+	// grpc gateways
+
+	go func() {
+		listenOn := fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.Port)
+
+		listner, listenerErr := net.Listen("tcp",
+			fmt.Sprintf("%v:%v", a.cfg.Server.Host, a.cfg.Server.Port),
+		)
+		if listenerErr != nil {
+			a.log.WithError(listenerErr).Fatal(fmt.Sprintf("failed to listen on %s", listenOn))
+
+		}
+
+		a.log.WithField("addr", listenOn).Info("grpc gateway server started")
+
+		if err := a.httpServer.Serve(listner); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
 				a.log.WithError(err).Fatal("Error running API")
 			} else {
@@ -75,12 +117,6 @@ func (a *Application) Start(ctx context.Context) {
 			}
 		}
 	}()
-}
-
-func registerHTTPEndpoints() *http.ServeMux {
-	mux := http.NewServeMux()
-
-	return mux
 }
 
 func (a *Application) Stop(ctx context.Context) {
@@ -95,6 +131,26 @@ func (a *Application) Stop(ctx context.Context) {
 	}
 	// Shutting down the entity rpc server
 	a.log.Info("Shutting down the entity rpc server...")
+	a.grpcServer.GracefulStop()
+}
+
+func rgisterGRPCEndpoints(services *services, log logModel.Logger) *grpc.Server {
+	grpcServer := grpc.NewServer()
+	userPB.RegisterUserServiceServer(grpcServer, userRPC.NewServer(services.UserSvc, log))
+	return grpcServer
+}
+
+func registerHTTPEndpoints(ctx context.Context, cfg *config.AppConfig, log logModel.Logger) *runtime.ServeMux {
+	mux := runtime.NewServeMux()
+	err := userPB.RegisterUserServiceHandlerFromEndpoint(ctx,
+		mux,
+		fmt.Sprintf("%v:%v", cfg.Server.Host, cfg.Server.GRPCPort),
+		[]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
+	)
+	if err != nil {
+		log.WithError(err).Errorf("Error while registering user service: %w", err)
+	}
+	return mux
 }
 
 // Migrate executes SQL migrations.
@@ -109,6 +165,8 @@ func (a *Application) Migrate(migrationPath string) {
 	if err := goose.Up(a.db, migrationPath); err != nil {
 		a.log.WithError(err).Fatal("could not execute migrations")
 	}
+
+	// to down we use gooseDown to version 0
 
 }
 
