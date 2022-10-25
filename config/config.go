@@ -18,8 +18,9 @@ type AppConfig struct {
 	APPName string
 	Env     string
 	Server  struct {
-		Port int
-		Host string
+		Port     int
+		Host     string
+		GRPCPort int
 	}
 
 	Logger   *loggerModel.Config

@@ -1,8 +1,9 @@
 appname: gocomerse
 env: dev
 server: 
-  port: 8080
+  port: 8085
   host: localhost
+  grpcport: 9094
 database: 
   host: localhost
   name: gocomerse
