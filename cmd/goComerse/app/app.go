@@ -67,7 +67,7 @@ func (a *Application) Init(ctx context.Context, configFiles string) {
 	}
 	a.log.WithField("host", a.cfg.Database.Host).WithField("port", a.cfg.Database.Port).Info("created database connection successfully")
 
-	a.services = buildServices(ctx, a.log, a.db)
+	a.services = buildServices(a.db)
 
 	a.grpcServer = rgisterGRPCEndpoints(a.services, a.log)
 

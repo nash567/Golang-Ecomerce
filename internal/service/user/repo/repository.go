@@ -95,15 +95,9 @@ func (r *Repository) Add(ctx context.Context, log logModel.Logger, user model.Us
 }
 
 func (r *Repository) Update(ctx context.Context, log logModel.Logger, user model.User) (*model.User, error) {
-	if user.UserID == 0 {
-
-		return nil, fmt.Errorf("no user id is provided to update")
-
-	}
 
 	var User model.User
 	query := `Update "user" set ` + buildUpdate(user) + ` where id=$1 RETURNING id,first_name,last_name,email,phone`
-	fmt.Println(query)
 	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {
 		log.WithError(err).Error("failed to prepare context for update user")

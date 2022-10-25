@@ -3,12 +3,13 @@ package user
 import (
 	"context"
 
-	logModel "github.com/gocomerse/internal/logger/model"
-	userPB "github.com/gocomerse/internal/pb/gocomerse/user"
-	"github.com/gocomerse/internal/service/user/model"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	logModel "github.com/gocomerse/internal/logger/model"
+	userPB "github.com/gocomerse/internal/pb/gocomerse/user"
+	"github.com/gocomerse/internal/service/user/model"
 )
 
 type Server struct {
