@@ -22,6 +22,7 @@ import (
 	"github.com/gocomerse/internal/logger"
 	logModel "github.com/gocomerse/internal/logger/model"
 	userPB "github.com/gocomerse/internal/pb/gocomerse/user"
+	authInterceptor "github.com/gocomerse/internal/service/auth"
 )
 
 const timeout = 5 * time.Second
@@ -135,8 +136,13 @@ func (a *Application) Stop(ctx context.Context) {
 }
 
 func rgisterGRPCEndpoints(services *services, log logModel.Logger) *grpc.Server {
-	grpcServer := grpc.NewServer()
-	userPB.RegisterUserServiceServer(grpcServer, userRPC.NewServer(services.UserSvc, log))
+	interceptor := authInterceptor.NewAuthInterceptor(log, true, *services.AuthSvc)
+	opts := []grpc.ServerOption{
+		// intercept the request to check the token
+		grpc.UnaryInterceptor(interceptor.Auth),
+	}
+	grpcServer := grpc.NewServer(opts...)
+	userPB.RegisterUserServiceServer(grpcServer, userRPC.NewServer(services.UserSvc, log, *services.AuthSvc))
 	return grpcServer
 }
 

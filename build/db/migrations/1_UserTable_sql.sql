@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     last_name VARCHAR(64) NOT NULL,
     email VARCHAR(64) NOT NULL,
     phone VARCHAR(10) NOT NULL,
+    password VARCHAR NOT NULL,
     created_at Timestamp Default current_timestamp,
     updated_at Timestamp Default current_timestamp
 )
