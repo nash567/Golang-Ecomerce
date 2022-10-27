@@ -2,33 +2,42 @@ package user
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
+
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	logModel "github.com/gocomerse/internal/logger/model"
 	userPB "github.com/gocomerse/internal/pb/gocomerse/user"
+	"github.com/gocomerse/internal/service/auth"
 	"github.com/gocomerse/internal/service/user/model"
 )
 
 type Server struct {
 	userPB.UnimplementedUserServiceServer
-	log logModel.Logger
-	svc model.Service
+	log     logModel.Logger
+	userSvc model.Service
+	authSvc auth.Service
 }
 
-func NewServer(svc model.Service, log logModel.Logger) *Server {
-	return &Server{log: log, svc: svc}
+func NewServer(userSvc model.Service, log logModel.Logger, authSvc auth.Service) *Server {
+	return &Server{log: log, userSvc: userSvc, authSvc: authSvc}
 
 }
 func (s *Server) GetUser(ctx context.Context, req *userPB.GetUserRequest) (*userPB.GetUserResponse, error) {
+
+	var queryParams model.QueryParams
+	getQueryParams(&queryParams, req)
 	users := make([]*userPB.User, 0)
-	res, err := s.svc.Get(ctx, s.log.WithFields(logModel.Fields{
+	res, err := s.userSvc.Get(ctx, s.log.WithFields(logModel.Fields{
 		"server": "User",
 		"method": "GetUser",
 		"rid":    uuid.New(),
-	}))
+	}), queryParams, false)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "cannot list users:%s", err)
 	}
@@ -49,7 +58,8 @@ func (s *Server) GetUser(ctx context.Context, req *userPB.GetUserRequest) (*user
 }
 
 func (s *Server) GetUserByID(ctx context.Context, req *userPB.UserId) (*userPB.User, error) {
-	user, err := s.svc.GetByID(ctx, s.log.WithFields(logModel.Fields{
+
+	user, err := s.userSvc.GetByID(ctx, s.log.WithFields(logModel.Fields{
 		"server": "User",
 		"method": "GetUserByID",
 		"rid":    uuid.New(),
@@ -68,8 +78,9 @@ func (s *Server) GetUserByID(ctx context.Context, req *userPB.UserId) (*userPB.U
 	}, nil
 }
 
-func (s *Server) RegisterUser(ctx context.Context, req *userPB.RegisterUserRequest) (*userPB.User, error) {
-	user, err := s.svc.Add(ctx, s.log.WithFields(logModel.Fields{
+func (s *Server) RegisterUser(ctx context.Context, req *userPB.RegisterUserRequest) (*userPB.RegisterUserResponse, error) {
+
+	user, err := s.userSvc.Create(ctx, s.log.WithFields(logModel.Fields{
 		"server": "User",
 		"method": "Register User",
 		"rid":    uuid.New(),
@@ -78,13 +89,14 @@ func (s *Server) RegisterUser(ctx context.Context, req *userPB.RegisterUserReque
 		LastName:  req.LastName,
 		Email:     req.Email,
 		Phone:     req.Phone,
+		Password:  req.Password,
 	})
 
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "cannot create user: %v", err)
 	}
 
-	return &userPB.User{
+	return &userPB.RegisterUserResponse{
 		Id:        int64(user.UserID),
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
@@ -94,7 +106,19 @@ func (s *Server) RegisterUser(ctx context.Context, req *userPB.RegisterUserReque
 }
 
 func (s *Server) UpdateUser(ctx context.Context, req *userPB.UpdateUserResquest) (*userPB.UpdateUserResponse, error) {
-	user, err := s.svc.Update(ctx, s.log.WithFields(logModel.Fields{
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("%w", ErrEmptyContext)
+	}
+
+	updateID, err := strconv.Atoi(md["user_id"][0])
+	if err != nil {
+		return nil, fmt.Errorf("%w", ErrIntToStrConv)
+	}
+	if updateID != int(req.Id) {
+		return nil, fmt.Errorf("%w", ErrInvalidOperation)
+	}
+	user, err := s.userSvc.Update(ctx, s.log.WithFields(logModel.Fields{
 		"server": "User",
 		"method": "Update User",
 		"rid":    uuid.New(),
@@ -119,7 +143,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *userPB.UpdateUserResquest)
 }
 
 func (s *Server) DeleteUser(ctx context.Context, req *userPB.UserId) (*userPB.DeleteUserResponse, error) {
-	err := s.svc.Delete(ctx, s.log.WithFields(logModel.Fields{
+	err := s.userSvc.Delete(ctx, s.log.WithFields(logModel.Fields{
 		"server": "User",
 		"method": "Delete User",
 		"rid":    uuid.New(),
@@ -135,4 +159,60 @@ func (s *Server) DeleteUser(ctx context.Context, req *userPB.UserId) (*userPB.De
 		Status:  "success",
 		Message: "user deleted successfully",
 	}, nil
+}
+
+func (s *Server) Login(ctx context.Context, req *userPB.LoginRequest) (*userPB.LoginResponse, error) {
+	user, err := s.authSvc.Login(ctx, s.log, model.UserCredential{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
+	}
+
+	return &userPB.LoginResponse{
+		User: &userPB.User{
+			Id:        int64(user.UserID),
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Phone:     user.Phone,
+			Email:     user.Email,
+		},
+		Token: user.Token,
+	}, nil
+}
+
+func getQueryParams(query *model.QueryParams, req *userPB.GetUserRequest) {
+	if req.FirstName != nil {
+
+		query.FirstName = *req.FirstName
+	}
+	if req.LastName != nil {
+
+		query.LastName = *req.LastName
+	}
+	if req.Email != nil {
+
+		query.Email = *req.Email
+	}
+
+	if req.Order != nil {
+
+		query.Order = *req.Order
+	}
+	if req.Sort != nil {
+
+		query.Sort = *req.Sort
+	}
+
+	if req.Limit != nil {
+
+		query.Limit = int(*req.Limit)
+	}
+	if req.Page != nil {
+
+		query.Page = int(*req.Page)
+	}
+
 }

@@ -19,9 +19,20 @@ func NewRepository(db *sql.DB) *Repository {
 
 }
 
-func (r *Repository) Get(ctx context.Context, log logModel.Logger) ([]*model.User, error) {
+func (r *Repository) Get(ctx context.Context, log logModel.Logger, queryParams model.QueryParams, pass bool) ([]*model.User, error) {
 	var Users []*model.User
-	stmt, err := r.db.PrepareContext(ctx, getUser)
+	query := createSearchQuery(
+
+		queryParams.FirstName,
+		queryParams.LastName,
+		queryParams.Email,
+		queryParams.Sort,
+		queryParams.Order,
+		queryParams.Limit,
+		queryParams.Page,
+		pass,
+	)
+	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {
 		log.WithError(err).Error("failed to prepare context with query")
 		return nil, fmt.Errorf("failed to prepare context for user: %w", err)
@@ -35,7 +46,13 @@ func (r *Repository) Get(ctx context.Context, log logModel.Logger) ([]*model.Use
 	}
 	for rows.Next() {
 		var user model.User
-		if err = rows.Scan(&user.UserID, &user.FirstName, &user.LastName, &user.Email, &user.Phone); err != nil {
+		if pass {
+			err = rows.Scan(&user.UserID, &user.FirstName, &user.LastName, &user.Email, &user.Phone, &user.Password)
+		} else {
+			err = rows.Scan(&user.UserID, &user.FirstName, &user.LastName, &user.Email, &user.Phone)
+
+		}
+		if err != nil {
 			log.WithError(err).Error("failed to get users:")
 
 			return nil, fmt.Errorf("failed to get users: %w", err)
@@ -47,7 +64,11 @@ func (r *Repository) Get(ctx context.Context, log logModel.Logger) ([]*model.Use
 
 		return Users, fmt.Errorf("failed to get all users: %w", err)
 	}
+	if len(Users) == 0 {
+		log.WithError(err).Error("no user found")
 
+		return nil, fmt.Errorf("%w", model.ErrNoRecordFound)
+	}
 	defer rows.Close()
 
 	return Users, nil
@@ -75,7 +96,7 @@ func (r *Repository) GetByID(ctx context.Context, log logModel.Logger, id int) (
 	return &User, nil
 }
 
-func (r *Repository) Add(ctx context.Context, log logModel.Logger, user model.User) (*model.User, error) {
+func (r *Repository) Create(ctx context.Context, log logModel.Logger, user model.User) (*model.User, error) {
 	var User model.User
 	stmt, err := r.db.PrepareContext(ctx, insertUser)
 	if err != nil {
@@ -84,7 +105,7 @@ func (r *Repository) Add(ctx context.Context, log logModel.Logger, user model.Us
 	}
 	defer stmt.Close()
 
-	row := stmt.QueryRowContext(ctx, user.FirstName, user.LastName, user.Email, user.Phone)
+	row := stmt.QueryRowContext(ctx, user.FirstName, user.LastName, user.Email, user.Phone, user.Password)
 	err = row.Scan(&User.UserID, &User.FirstName, &User.LastName, &User.Email, &User.Phone)
 	if err != nil {
 		log.WithError(err).Error("failed to scan while adding user")

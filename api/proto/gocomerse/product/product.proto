@@ -7,17 +7,63 @@ import "google/api/annotations.proto";
 
 message Product{
     int64 id =1;
-    string first_name = 2;
-    string last_name = 3;
-    string email = 4;
-    string phone = 5;
+    string product_name = 2;
+    string price = 3;
+    string rating = 4;
+}
+message GetProductRequest{
+
 }
 
+message CreateProductRequest{
+    string product_name = 2;
+    string price = 3;
+    string rating = 4;
+}
+message UpdateProductRequest{
+    int64 id=1;
+    optional string product_name = 2;
+    optional string price = 3;
+    optional string rating = 4;
+}
+message DeleteProductRequest {
+    int64 id= 1;
+}
+message DeleteProductResponse{
+
+}
 service ProductService{
-    rpc RegisterUserP(Product)returns (Product){
+    rpc GetProduct(GetProductRequest)returns (Product){
         option (google.api.http)={
-            post: "/v1/register"
-            body: "*"
+            get: "/v1/product"
+            
         };
     };
+
+    rpc CreateProduct(CreateProductRequest)returns (Product){
+        option (google.api.http)={
+            post: "/v1/product",
+            body:"*"
+            
+        };
+    };
+
+    rpc UpdateProduct(UpdateProductRequest)returns (Product){
+        option (google.api.http)={
+            patch: "/v1/product/{id}",
+            body :"*"
+            
+        };
+    };
+
+
+    rpc DeleteProduct(DeleteProductRequest)returns (DeleteProductResponse){
+        option (google.api.http)={
+            delete: "/v1/product/{id}"
+            
+            
+        };
+    }
+    
+    
 }
