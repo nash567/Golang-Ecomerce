@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	tokenExpiration = 5 * time.Minute
+	tokenExpiration = 25 * time.Minute
 )
 
 type services struct {

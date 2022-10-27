@@ -111,7 +111,7 @@ func (s *Server) UpdateUser(ctx context.Context, req *userPB.UpdateUserResquest)
 		return nil, fmt.Errorf("%w", ErrEmptyContext)
 	}
 
-	updateID, err := strconv.Atoi(md["userId"][0])
+	updateID, err := strconv.Atoi(md["user_id"][0])
 	if err != nil {
 		return nil, fmt.Errorf("%w", ErrIntToStrConv)
 	}

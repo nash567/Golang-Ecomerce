@@ -1,10 +1,10 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS product(
-    id SERIAL  PRIMARY KEY,
+    product_id SERIAL  PRIMARY KEY,
     product_name VARCHAR(64) NOT NULL,
-    price INTEGER NOT NULL,
-    Rating INTEGER NOT NULL
+    product_price INTEGER NOT NULL,
+    product_rating INTEGER NOT NULL
     
 )
 -- +goose StatementEnd

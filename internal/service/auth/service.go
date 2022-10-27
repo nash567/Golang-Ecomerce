@@ -89,7 +89,6 @@ func (s *Service) Login(ctx context.Context, log logModel.Logger, user model.Use
 
 		return nil, fmt.Errorf("unauthorized user! enter correct password: %w", err)
 	}
-
 	token, err := s.GenerateToken(&model.UserCredential{
 		Email:    user.Email,
 		Password: user.Password,

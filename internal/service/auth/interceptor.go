@@ -49,7 +49,8 @@ func (i *Interceptor) Auth(ctx context.Context,
 	if info.FullMethod == "/user.UserService/UpdateUser" {
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok {
-			md.Append("userId", strconv.Itoa(claims.ID))
+
+			md.Append("user_id", strconv.Itoa(claims.ID))
 
 		}
 		newCtx := metadata.NewIncomingContext(ctx, md)
