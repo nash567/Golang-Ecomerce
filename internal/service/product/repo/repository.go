@@ -21,6 +21,10 @@ func (r *Repository) Get(ctx context.Context, log logModel.Logger) ([]*model.Pro
 	var Products []*model.Product
 
 	stmt, err := r.db.PrepareContext(ctx, getProduct)
+	if err != nil {
+		log.WithError(err).Error("failed to prepare context with query")
+		return nil, fmt.Errorf("failed to prepare context for product: %w", err)
+	}
 	defer stmt.Close()
 
 	rows, err := stmt.QueryContext(ctx)
